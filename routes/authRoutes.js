@@ -18,7 +18,9 @@ router.post("/register",upload.single("profilePic"), async (req, res) => {
     if (existingUser) return res.status(400).json({ message: "User already exists" });
 
     const hashed = await bcrypt.hash(password, 10);
-         const profilePicPath = req.file ? req.file.filename : "";
+
+         const profilePicPath = req.file ? req.file.path : "";
+
     const user = await User.create({...req.body, name, email, password: hashed ,profilePic: profilePicPath});
 
     const userObj = user.toObject();
@@ -73,20 +75,23 @@ router.get("/all", async (req, res) => {
 router.put("/:id", authMiddleware, upload.single("profilePic"), async (req, res) => {
   const userId = req.params.id;
 
-  // ✅ Authorization check
+
+
+
   if (req.user.userId !== userId) {
     return res.status(403).json({ message: "Not authorized" });
   }
 
   try {
     const updateData = { ...req.body };
-
-    // ✅ If file uploaded, set profilePic path
+  
+    
     if (req.file) {
-      updateData.profilePic = req.file.filename; // only filename store, not full path
+      updateData.profilePic = req.file.path; 
     }
 
-    // ✅ If skills are comma separated string, convert to array
+   
+
     if (typeof updateData.skills === "string") {
       updateData.skills = updateData.skills.split(",").map(skill => skill.trim());
     }
