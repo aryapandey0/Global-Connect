@@ -6,7 +6,9 @@ const User = require('../models/User');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const upload = require('../middleware/multer');
-const authMiddleware = require('../middleware/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware.js');
+const { protect } = require('../middleware/authMiddleware');
+const { updateProfile } = require('../controllers/authController');
 
 // Register
 router.post("/register",upload.single("profilePic"), async (req, res) => {
@@ -63,7 +65,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/all", async (req, res) => {
+router.get("/all",protect, async (req, res) => {
   try {
     const users = await User.find();
     return res.json(users);
@@ -72,12 +74,12 @@ router.get("/all", async (req, res) => {
   }
 });
 
-router.put("/:id", authMiddleware, upload.single("profilePic"), async (req, res) => {
+router.put("/:id", protect, upload.single("profilePic"), async (req, res) => {
+
+ //res.json({ message: "Dummy PUT route works" });
+
+
   const userId = req.params.id;
-
-
-
-
   if (req.user.userId !== userId) {
     return res.status(403).json({ message: "Not authorized" });
   }
@@ -115,7 +117,7 @@ router.put("/:id", authMiddleware, upload.single("profilePic"), async (req, res)
 
 
 
-router.get("/user/:id",authMiddleware,async(req,res)=>{
+router.get("/user/:id",protect,async(req,res)=>{
   const userId = req.params.id;
   try{
   const user =await User.findById(userId).select("-password");
@@ -126,7 +128,7 @@ return res.json(user);
   }
 })
 
-router.get("/search",authMiddleware,async(req,res)=>{
+router.get("/search",protect,async(req,res)=>{
   const {name} = req.query;
   try{
     const users = await User.find({
