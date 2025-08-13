@@ -4,9 +4,9 @@ const Connection = require('../models/Connection');
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 const { default: mongoose } = require('mongoose');
+const { protect } = require('../middleware/authMiddleware');
 
-
-router.post("/:id", authMiddleware, async (req, res) => {
+router.post("/:id", protect, async (req, res) => {
   const senderId = req.user.userId;
   const receiverId = req.params.id;
 
@@ -38,7 +38,7 @@ router.post("/:id", authMiddleware, async (req, res) => {
 });
 
 
-router.get("/:id", authMiddleware, async (req, res) => {
+router.get("/:id",protect, async (req, res) => {
   const userId = req.user.userId;
 
   try {
@@ -55,7 +55,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
 
 
 
-router.get("/requests/:id",async(req,res)=>{
+router.get("/requests/:id",protect,async(req,res)=>{
 
   const userId = req.params.id;
 
@@ -72,7 +72,7 @@ res.json(requests);
 
 })
 
-router.put("/:id", authMiddleware, async (req, res) => {
+router.put("/:id", protect, async (req, res) => {
     const connectionId = req.params.id;
     const { status } = req.body;
     const userId = req.user.userId;
@@ -103,7 +103,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 });
 
 
-router.get("/mine/:id",authMiddleware, async (req, res) => {
+router.get("/mine/:id",protect, async (req, res) => {
   const userId = req.params.id;
 
   try {
