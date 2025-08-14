@@ -4,6 +4,7 @@ import PostCard from "../components/PostCard";
 
 export default function Home() {
   const [currentView, setCurrentView] = useState("feed");
+  const [search, setSearch] = useState("");
 
   const [posts, setPosts] = useState([
     {
@@ -83,12 +84,25 @@ export default function Home() {
         : post
     ));
   };
-
+  const filteredPosts = posts.filter(
+    (post) =>
+      post.author.toLowerCase().includes(search.toLowerCase()) ||
+      post.content.toLowerCase().includes(search.toLowerCase())
+  );
   return (
     <div className="p-6 space-y-6">
 
       {currentView === "feed" && (
         <>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Search posts..."
+              className="w-full border rounded p-2 outline-none focus:ring-2 focus:ring-orange-200"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
           {/* Create Post */}
           <div className="bg-white shadow rounded p-4">
             <textarea

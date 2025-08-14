@@ -119,7 +119,8 @@ export default function Register() {
 
         <button
           type="submit"
-          className="w-full bg-orange-500 text-white py-2 rounded hover:bg-blue-600"
+          onClick={() => navigate("/login")}
+          className="w-full bg-orange-500 text-white py-2 rounded hover:bg-orange-600"
         >
           Register
         </button>
