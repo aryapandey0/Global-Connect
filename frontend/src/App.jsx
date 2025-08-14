@@ -5,6 +5,7 @@ import Chat from "./pages/Chat";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import MainLayout from "./layouts/MainLayout";
+import Job from "./pages/Job";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/profile/:id" element={<Profile />} />
         <Route path="/chat" element={<Chat />} />
+        <Route path="/jobs" element={<Job />} />
       </Route>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
