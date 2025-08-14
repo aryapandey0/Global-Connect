@@ -1,10 +1,11 @@
 import { useState } from "react";
 import PostCard from "../components/PostCard";
 
-
 export default function Home() {
   const [currentView, setCurrentView] = useState("feed");
   const [search, setSearch] = useState("");
+  const [connectedAuthors, setConnectedAuthors] = useState([]);
+
 
   const [posts, setPosts] = useState([
     {
@@ -84,14 +85,21 @@ export default function Home() {
         : post
     ));
   };
+
+const handleConnect = (author) => {
+  if (connectedAuthors.includes(author)) return; // already connected
+  setConnectedAuthors([...connectedAuthors, author]);
+  alert(`You sent a connection request to ${author}`);
+};
+
   const filteredPosts = posts.filter(
     (post) =>
       post.author.toLowerCase().includes(search.toLowerCase()) ||
       post.content.toLowerCase().includes(search.toLowerCase())
   );
+
   return (
     <div className="p-6 space-y-6">
-
       {currentView === "feed" && (
         <>
           <div className="mb-4">
@@ -103,6 +111,7 @@ export default function Home() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+
           {/* Create Post */}
           <div className="bg-white shadow rounded p-4">
             <textarea
@@ -132,13 +141,14 @@ export default function Home() {
 
           {/* Feed */}
           <div className="p-4 space-y-6">
-            {posts.map((post) => (
+            {filteredPosts.map((post) => (
               <PostCard
                 key={post.id}
                 post={post}
                 onLike={handleLike}
                 onShare={handleShare}
                 onAddComment={handleAddComment}
+                onConnect={handleConnect} // NEW
               />
             ))}
           </div>

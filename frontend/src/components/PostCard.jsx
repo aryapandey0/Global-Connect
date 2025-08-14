@@ -1,7 +1,7 @@
 import React from "react";
-import { FaHeart, FaRegComment, FaShare } from "react-icons/fa";
+import { FaHeart, FaRegComment, FaShare, FaUserPlus } from "react-icons/fa";
 
-const PostCard = ({ post, onLike, onAddComment, onShare }) => {
+const PostCard = ({ post, onLike, onAddComment, onShare, onConnect, isConnected }) => {
   return (
     <div className="bg-orange-100 bg-opacity-60 backdrop-blur shadow-lg rounded-xl p-4 mb-4 border border-orange-200">
       {/* Author */}
@@ -44,6 +44,16 @@ const PostCard = ({ post, onLike, onAddComment, onShare }) => {
           className="flex items-center gap-1 hover:text-green-500"
         >
           <FaShare /> {post.shares}
+        </button>
+
+        {/* Connect */}
+        <button
+          onClick={() => !isConnected && onConnect && onConnect(post.author)}
+          className={`flex items-center gap-1 px-3 py-1 rounded 
+            ${isConnected ? "bg-purple-300 text-white cursor-not-allowed" : "hover:text-purple-500"}`}
+          disabled={isConnected}
+        >
+          <FaUserPlus /> {isConnected ? "Connected" : "Connect"}
         </button>
       </div>
 
