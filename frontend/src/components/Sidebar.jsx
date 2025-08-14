@@ -5,6 +5,7 @@ export default function Sidebar() {
     { name: "Home", path: "/" },
     { name: "Chat", path: "/chat" },
     { name: "Profile", path: "/profile/1" }, // sample user id
+    { name: "Jobs", path: "/jobs" },
   ];
 
   return (
