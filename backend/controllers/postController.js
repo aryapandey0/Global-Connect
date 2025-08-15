@@ -7,7 +7,7 @@ console.log('req.body:', req.body);
 
             const {image,content}=req.body;
             const newPost=await Post.create({
-                     userId: req.user.id,
+                     userId: req.user._id,
                     content: req.body.content,
                     image: req.file?.path,
             });
@@ -18,7 +18,62 @@ console.log('req.body:', req.body);
     }
 }
 
-exports.togglelike=async(req,res)=>{
+exports.getAllPosts=async(req,res)=>{
+    try{
+        const posts=await Post.find().populate("userId","name profilePic").sort({createdAt:-1});
+        res.status(200).json(posts);
+
+    }catch(err){
+         res.status(500).json({ message: "Failed to fetch posts", error: err.message });
+  }
+}
+
+exports.updatePost=async(req,res)=>{
+    try{
+        const { postId }=req.params;
+        const post=await Post.findById(postId);
+        if(!post) return res.status(404).json({message:"post not found"});
+        if(!post.userId.equals(req.user._id)){
+             return res.status(403).json({ message: "Not authorized" });
+        }
+        if(req.body.content)post.content=req.body.content;
+        if(req.file)post.image=req.file.path;
+           await post.save();
+    res.status(200).json(post);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update post", error: err.message });
+  }
+}
+
+
+
+
+exports.deletePost=async(req,res)=>{
+    try{
+        const {postId}=req.params;
+        const post=await Post.findById(postId);
+        
+    if (!post) return res.status(404).json({ message: "Post not found" });
+    if (post.userId.toString() !== req.user._id.toString())
+      return res.status(403).json({ message: "Not authorized" });
+
+    await post.remove();
+    res.status(200).json({ message: "Post deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete post", error: err.message });
+  }
+}
+
+
+
+
+
+
+
+
+
+
+exports.toggleLike=async(req,res)=>{
 
     try{
     const{postId}=req.body;
@@ -42,7 +97,7 @@ catch(err){
 
 }
 
-exports.addcomment=async(req,res)=>{
+exports.addComment=async(req,res)=>{
     try{
             const { postId }=req.params;
             const { text }=req.body;
