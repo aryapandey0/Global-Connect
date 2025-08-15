@@ -1,74 +1,45 @@
-require('dotenv').config();
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const cors = require('cors');
-const connectDB = require('./config/db');
-const userRoutes = require('./routes/users');
-const messageRoutes = require('./routes/messages');
-const Message = require('./models/Message'); // ✅ Add this
+require("dotenv").config();
+const express = require("express");
+const http = require("http");
+const mongoose = require("mongoose");
+const { Server } = require("socket.io");
+const Message = require("./models/Message");
 
 const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Connect MongoDB
-connectDB();
-
-// API routes
-app.use('/api/users', userRoutes);
-app.use('/api/messages', messageRoutes);
-
-// Create HTTP server and Socket.IO server
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*' },
+const io = new Server(server, { cors: { origin: "*" } });
+
+// ✅ MongoDB Connection (case fixed)
+mongoose.connect("mongodb://127.0.0.1:27017/chatDB", {
+    // new URL parser and unified topology are now default, so no need for options
+})
+.then(() => console.log("✅ MongoDB Connected"))
+.catch(err => console.error(err));
+
+// Serve a simple root endpoint
+app.get("/", (req, res) => {
+    res.send("Chat server is running!");
 });
 
-// Track online users
-const onlineUsers = new Map();
+io.on("connection", async (socket) => {
+    console.log("User connected:", socket.id);
 
-io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
+    // Send chat history
+    const messages = await Message.find().sort({ timestamp: 1 });
+    socket.emit("chatHistory", messages);
 
-  // Register user as online
-  socket.on('user_connected', (userId) => {
-    onlineUsers.set(userId, socket.id);
-    console.log(`User ${userId} is online.`);
-  });
+    // Listen for messages
+    socket.on("sendMessage", async (data) => {
+        data.timestamp = new Date();
+        const newMsg = new Message(data);
+        await newMsg.save();
+        io.emit("receiveMessage", newMsg);
+    });
 
-  // Handle sending messages
-  socket.on('sendMessage', async (msg) => {
-    try {
-      // Save message in DB
-      const savedMsg = await Message.create(msg);
-
-      // Emit to receiver if online
-      const receiverSocket = onlineUsers.get(msg.receiverId);
-      if (receiverSocket) {
-        io.to(receiverSocket).emit('receive_message', savedMsg);
-      }
-
-      // Emit to sender
-      io.to(socket.id).emit('receive_message', savedMsg);
-
-      console.log(`Message from ${msg.senderId} to ${msg.receiverId} sent.`);
-    } catch (err) {
-      console.error('Message save failed:', err);
-    }
-  });
-
-  // Handle disconnect
-  socket.on('disconnect', () => {
-    for (let [userId, sockId] of onlineUsers.entries()) {
-      if (sockId === socket.id) {
-        onlineUsers.delete(userId);
-        console.log(`User ${userId} disconnected.`);
-      }
-    }
-  });
+    socket.on("disconnect", () => {
+        console.log("User disconnected:", socket.id);
+    });
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
