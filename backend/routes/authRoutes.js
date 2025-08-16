@@ -1,41 +1,59 @@
-// routes/authRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const upload = require('../middleware/multer');
-const authMiddleware = require('../middleware/authMiddleware.js');
 const { protect } = require('../middleware/authMiddleware');
-const { updateProfile } = require('../controllers/authController');
 
-// Register
-router.post("/register",upload.single("profilePic"), async (req, res) => {
+// Helper: generate token
+const generateToken = (user) => {
+  return jwt.sign(
+    { userId: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
+// ======================== REGISTER ========================
+router.post("/register", upload.single("profilePic"), async (req, res) => {
   const { name, email, password } = req.body;
-  if (!name || !email || !password) return res.status(400).json({ message: "Name, email and password are required" });
+  if (!name || !email || !password)
+    return res.status(400).json({ message: "Name, email and password are required" });
 
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: "User already exists" });
 
     const hashed = await bcrypt.hash(password, 10);
+    const profilePicPath = req.file ? req.file.path : "";
 
-         const profilePicPath = req.file ? req.file.path : "";
+    const user = await User.create({
+      name,
+      email,
+      password: hashed,
+      profilePic: profilePicPath,
+    });
 
-    const user = await User.create({...req.body, name, email, password: hashed ,profilePic: profilePicPath});
+    const token = generateToken(user);
 
-    const userObj = user.toObject();
-    delete userObj.password;
-
-    return res.status(201).json(userObj);
+    return res.status(201).json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profilePic: user.profilePic,
+      },
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Registration failed" });
   }
 });
 
-// Login
+// ======================== LOGIN ========================
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ message: "Email and password required" });
@@ -44,20 +62,22 @@ router.post("/login", async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User does not exist" });
 
-    // If user registered via Google and has no password
     if (!user.password) return res.status(400).json({ message: "Please login via Google OAuth" });
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ message: "Incorrect password" });
 
-    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = generateToken(user);
 
     return res.status(200).json({
       token,
-      role: user.role,
-      userId: user._id,
-      name: user.name,
-      profilePic:user.profilePic
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profilePic: user.profilePic,
+      },
     });
   } catch (err) {
     console.error(err);
@@ -65,44 +85,34 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.get("/all",protect, async (req, res) => {
+// ======================== GET LOGGED IN USER ========================
+router.get("/me", protect, async (req, res) => {
   try {
-    const users = await User.find();
-    return res.json(users);
+    const user = await User.findById(req.user._id).select("-password");
+    res.json(user);
   } catch (err) {
-    return res.status(500).json({ message: "Cant Access Users" });
+    res.status(500).json({ message: "Failed to fetch user" });
   }
 });
 
-router.put("/:id", protect, upload.single("profilePic"), async (req, res) => {
-
- //res.json({ message: "Dummy PUT route works" });
-
-
-  const userId = req.params.id;
-  if (req.user.userId !== userId) {
-    return res.status(403).json({ message: "Not authorized" });
-  }
-
+// ======================== UPDATE PROFILE ========================
+router.put("/me", protect, upload.single("profilePic"), async (req, res) => {
   try {
     const updateData = { ...req.body };
-  
-    
-    if (req.file) {
-      updateData.profilePic = req.file.path; 
-    }
 
-   
+    if (req.file) {
+      updateData.profilePic = req.file.path;
+    }
 
     if (typeof updateData.skills === "string") {
       updateData.skills = updateData.skills.split(",").map(skill => skill.trim());
     }
 
     const updated = await User.findByIdAndUpdate(
-      userId,
+      req.user._id,
       updateData,
       { new: true }
-    );
+    ).select("-password");
 
     if (!updated) {
       return res.status(404).json({ message: "User not found" });
@@ -115,31 +125,17 @@ router.put("/:id", protect, upload.single("profilePic"), async (req, res) => {
   }
 });
 
-
-
-router.get("/user/:id",protect,async(req,res)=>{
-  const userId = req.params.id;
-  try{
-  const user =await User.findById(userId).select("-password");
-return res.json(user);
-  }
-  catch(err){
-    return res.status(400).json({message:"User Not Found"});
-  }
-})
-
-router.get("/search",protect,async(req,res)=>{
-  const {name} = req.query;
-  try{
+// ======================== SEARCH USERS ========================
+router.get("/search", protect, async (req, res) => {
+  const { name } = req.query;
+  try {
     const users = await User.find({
-      name:{$regex:name,$options : "i"}
-
-          }).select("-password");
+      name: { $regex: name, $options: "i" }
+    }).select("-password");
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: "Search failed" });
-  } }
-  )
-
+  }
+});
 
 module.exports = router;
