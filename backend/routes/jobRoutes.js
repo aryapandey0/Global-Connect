@@ -1,7 +1,7 @@
 // routes/jobRoutes.js
 const express = require('express');
 const router = express.Router();
-const jobController = require('../controllers/jobController');
+const jobController = require('./backend/controllers/jobController.js');
 
 // If you have an auth middleware, insert it: e.g., require('../middleware/auth')
 const auth = (req, res, next) => { 
